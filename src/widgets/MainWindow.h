@@ -63,6 +63,8 @@ private slots:
 
     void onPbAddFromFileSystemClicked();
 
+    void onPbAddFromFilesystemCustomDestClicked();
+
 private:
     Ui::MainWindow *ui = nullptr;
 

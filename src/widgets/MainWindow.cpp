@@ -187,6 +187,9 @@ void MainWindow::createConnectionsDefault() {
 
     connect(ui->pb_addFromFileSystem, &QPushButton::clicked,
             this, &MainWindow::onPbAddFromFileSystemClicked);
+
+    connect(ui->pb_addFromFileSystemCustomDest, &QPushButton::clicked,
+            this, &MainWindow::onPbAddFromFilesystemCustomDestClicked);
 }
 
 QList<QFileInfo> MainWindow::getDependencies(const QString &binaryPath) {
@@ -384,11 +387,11 @@ void MainWindow::onCustomContextMenuRequestedPaths(const QPoint &pos) {
     }
     // we have to check if there is a multi-selection
     const QModelIndexList selectedIndexes = ui->tv_paths->selectionModel()->selectedRows();
-    qDebug() << "Selected indexes: " << selectedIndexes.count();
     QMenu menu(this);
     QAction *removeAction = nullptr;
     QAction *changeDestDirAction = nullptr;
     if (selectedIndexes.count() == 1) {
+        // TODO allow to remove multiple items
         removeAction = menu.addAction("Remove");
     }
     if (selectedIndexes.count() > 1) {
@@ -436,6 +439,45 @@ void MainWindow::onPbAddFromFileSystemClicked() {
             // if the selected item is a file, we will add only this file
             const QString path = m_fileSystemModel->filePath(idx);
             addBinary(path, true, nullptr);
+        }
+    }
+}
+
+void MainWindow::onPbAddFromFilesystemCustomDestClicked() {
+    RenamePathDialog dialog(this);
+    if (dialog.exec() == QDialog::Accepted) {
+        const QString text = dialog.getText();
+        if (text.isEmpty()) {
+            QMessageBox::warning(this, "Warning", "The destination directory cannot be empty");
+            return;
+        }
+        // check if the tree view that uses the file system model has any selected item
+        const QModelIndexList selectedIndexes = ui->tv_fileExplorer->selectionModel()->selectedRows();
+        if (selectedIndexes.isEmpty()) {
+            return;
+        }
+        // If the selected item is a directory, we will add all the files inside the directory
+        for (const QModelIndex &idx: selectedIndexes) {
+            if (m_fileSystemModel->isDir(idx)) {
+                // get the path of the directory
+                const QString path = m_fileSystemModel->filePath(idx);
+                // get all the files inside the directory
+                QDir dir(path);
+                const auto files = dir.entryInfoList(QDir::Files);
+                for (const auto &file: files) {
+                    addBinary(file.filePath(), true, nullptr);
+                }
+            } else {
+                // if the selected item is a file, we will add only this file
+                const QString path = m_fileSystemModel->filePath(idx);
+                addBinary(path, true, nullptr);
+            }
+        }
+        // now we will change the destination directory of all the selected items
+        const QModelIndexList selectedItems = ui->tv_paths->selectionModel()->selectedIndexes();
+        for (const QModelIndex &idx: selectedItems) {
+            const auto destIdx = idx.siblingAtColumn(ModelColumnDestination);
+            m_model->setData(destIdx, text);
         }
     }
 }

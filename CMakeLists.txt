@@ -18,6 +18,9 @@ add_executable(InstallerCreator
         src/widgets/MainWindow.cpp
         src/widgets/MainWindow.h
         src/widgets/MainWindow.ui
+        src/widgets/RenamePathDialog.cpp
+        src/widgets/RenamePathDialog.h
+        src/widgets/RenamePathDialog.ui
 )
 
 target_link_libraries(InstallerCreator

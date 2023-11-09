@@ -6,14 +6,38 @@
 
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
+#include "RenamePathDialog.h"
+
 #include <QProcess>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QFileSystemModel>
+#include <QDir>
+#include <QMenu>
 
 
 MainWindow::MainWindow(QWidget *parent) :
         QMainWindow(parent), ui(new Ui::MainWindow) {
     ui->setupUi(this);
+
+    ui->tv_paths->setContextMenuPolicy(Qt::CustomContextMenu);
+
+    // Create the model
+    m_fileSystemModel = new QFileSystemModel(this);
+    m_fileSystemModel->setRootPath(QDir::homePath());
+    auto filters = m_fileSystemModel->filter();
+    filters |= QDir::Hidden;
+
+    m_fileSystemModel->setFilter(filters);
+
+    // Set the model to the tree view
+    ui->tv_fileExplorer->setModel(m_fileSystemModel);
+    // hide the "Date modified" column
+    ui->tv_fileExplorer->hideColumn(3);
+    // hide the "size" column
+    ui->tv_fileExplorer->hideColumn(1);
+
+
     m_model = new QStandardItemModel(this);
     // the model will have three columns, Name, Path, Find, Destination
     m_model->setColumnCount(4);
@@ -41,7 +65,7 @@ void MainWindow::onPreGenerateButtonClicked() {
     }
     // columns: 1. Name, 2. Path
 
-    const auto childs = getAllChilds(m_model->invisibleRootItem());
+    const auto childs = getAllChild(m_model->invisibleRootItem());
     for (const auto &item: childs) {
         const QModelIndex destinationIndex = item->index().siblingAtColumn(ModelColumnDestination);
         const QModelIndex pathIndex = item->index().siblingAtColumn(ModelColumnPath);
@@ -129,6 +153,11 @@ void MainWindow::onPreGenerateButtonClicked() {
         item->setText(0, name);
         item->setText(1, path);
     }
+
+    // uncollapse all the items
+    ui->tw_organization->expandAll();
+    // the first column should be resized to fit the content
+    ui->tw_organization->resizeColumnToContents(0);
 }
 
 void MainWindow::createConnectionsDefault() {
@@ -150,8 +179,14 @@ void MainWindow::createConnectionsDefault() {
     connect(ui->pb_install, &QPushButton::clicked,
             this, &MainWindow::onPbInstallClicked);
 
+    connect(ui->tv_paths, &QTreeView::customContextMenuRequested,
+            this, &MainWindow::onCustomContextMenuRequestedPaths);
+
     connect(ui->cb_zipped, &QCheckBox::toggled,
             this, &MainWindow::onCbZippedToggled);
+
+    connect(ui->pb_addFromFileSystem, &QPushButton::clicked,
+            this, &MainWindow::onPbAddFromFileSystemClicked);
 }
 
 QList<QFileInfo> MainWindow::getDependencies(const QString &binaryPath) {
@@ -246,13 +281,13 @@ void MainWindow::addBinary(const QString &binaryPath, bool onBinDir, QStandardIt
     parentItem->appendRow(items);
 }
 
-QSet<QStandardItem *> MainWindow::getAllChilds(QStandardItem *parentItem) const {
+QSet<QStandardItem *> MainWindow::getAllChild(QStandardItem *parentItem) const {
     // get all the childs of the parentItem recursively
     QSet<QStandardItem *> childs;
     for (int i = 0; i < parentItem->rowCount(); ++i) {
         auto *child = parentItem->child(i);
         childs.insert(child);
-        childs.unite(getAllChilds(child));
+        childs.unite(getAllChild(child));
     }
     return childs;
 }
@@ -293,7 +328,7 @@ void MainWindow::onPbInstallClicked() {
     }
     // create the directory
     {
-        if (!dir.mkpath(outputPath) ) {
+        if (!dir.mkpath(outputPath)) {
             QMessageBox::critical(this, "Error", "Cannot create the output directory");
             return;
         }
@@ -306,8 +341,9 @@ void MainWindow::onPbInstallClicked() {
 void MainWindow::installRecursive(QTreeWidgetItem *item, const QString &path) {
     // if the item has any child, we have to create the directory
     if (item->childCount() > 0) {
-        QDir dir(path);
-        if (!dir.mkdir(item->text(0)) ) {
+        QDir dir(QDir::cleanPath(path));
+        const QString itemPath = item->text(0);
+        if (!itemPath.isEmpty() && !dir.mkdir(itemPath)) {
             qWarning() << "Cannot create the directory " + path + "/" + item->text(0);
         }
         for (int i = 0; i < item->childCount(); ++i) {
@@ -317,9 +353,7 @@ void MainWindow::installRecursive(QTreeWidgetItem *item, const QString &path) {
     } else {
         // install this item in the path
         const bool ok = QFile::copy(item->text(1), path + "/" + item->text(0));
-        if (!ok)
-        {
-            //QMessageBox::critical(this, "Error", "Cannot copy the file " + item->text(1) + " to " + path + "/" + item->text(0));
+        if (!ok) {
             qWarning() << "Cannot copy the file " + item->text(1) + " to " + path + "/" + item->text(0);
         }
     }
@@ -327,6 +361,9 @@ void MainWindow::installRecursive(QTreeWidgetItem *item, const QString &path) {
 
 void MainWindow::onCbZippedToggled(bool checked) {
     // Check if the command "tar" exists
+    if (!checked) {
+        return;
+    }
     QProcess process;
     process.setProgram("tar");
     process.setArguments({"--version"});
@@ -337,5 +374,68 @@ void MainWindow::onCbZippedToggled(bool checked) {
         QMessageBox::critical(this, "Error", "The command tar is not installed");
         QSignalBlocker blocker(ui->cb_zipped);
         ui->cb_zipped->setChecked(false);
+    }
+}
+
+void MainWindow::onCustomContextMenuRequestedPaths(const QPoint &pos) {
+    const QModelIndex index = ui->tv_paths->indexAt(pos);
+    if (!index.isValid()) {
+        return;
+    }
+    // we have to check if there is a multi-selection
+    const QModelIndexList selectedIndexes = ui->tv_paths->selectionModel()->selectedRows();
+    qDebug() << "Selected indexes: " << selectedIndexes.count();
+    QMenu menu(this);
+    QAction *removeAction = nullptr;
+    QAction *changeDestDirAction = nullptr;
+    if (selectedIndexes.count() == 1) {
+        removeAction = menu.addAction("Remove");
+    }
+    if (selectedIndexes.count() > 1) {
+        changeDestDirAction = menu.addAction("Change destination directory");
+    }
+    QAction *action = menu.exec(ui->tv_paths->viewport()->mapToGlobal(pos));
+    if (removeAction && action == removeAction) {
+        QStandardItem *item = m_model->itemFromIndex(index);
+        // remove the index
+        if (item->parent()) {
+            item->parent()->removeRow(item->row());
+        } else {
+            m_model->removeRow(item->row());
+        }
+    } else if (changeDestDirAction && action == changeDestDirAction) {
+        RenamePathDialog dialog(this);
+        if (dialog.exec() == QDialog::Accepted) {
+            const QString text = dialog.getText();
+            for (const QModelIndex &idx: selectedIndexes) {
+                const auto destIdx = idx.siblingAtColumn(ModelColumnDestination);
+                m_model->setData(destIdx, text);
+            }
+        }
+    }
+}
+
+void MainWindow::onPbAddFromFileSystemClicked() {
+    // check if the tree view that uses the file system model has any selected item
+    const QModelIndexList selectedIndexes = ui->tv_fileExplorer->selectionModel()->selectedIndexes();
+    if (selectedIndexes.isEmpty()) {
+        return;
+    }
+    // If the selected item is a directory, we will add all the files inside the directory
+    for (const QModelIndex &idx: selectedIndexes) {
+        if (m_fileSystemModel->isDir(idx)) {
+            // get the path of the directory
+            const QString path = m_fileSystemModel->filePath(idx);
+            // get all the files inside the directory
+            QDir dir(path);
+            const auto files = dir.entryInfoList(QDir::Files);
+            for (const auto &file: files) {
+                addBinary(file.filePath(), true, nullptr);
+            }
+        } else {
+            // if the selected item is a file, we will add only this file
+            const QString path = m_fileSystemModel->filePath(idx);
+            addBinary(path, true, nullptr);
+        }
     }
 }

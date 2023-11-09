@@ -15,6 +15,7 @@ namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
 class QTreeWidgetItem;
+class QFileSystemModel;
 
 class MainWindow : public QMainWindow {
 Q_OBJECT
@@ -38,7 +39,7 @@ private:
 
     void addBinary(const QString &binaryPath, bool onBinDir, QStandardItem *parentItem);
 
-    QSet<QStandardItem *> getAllChilds(QStandardItem *parentItem) const;
+    QSet<QStandardItem *> getAllChild(QStandardItem *parentItem) const;
 
     void installRecursive(QTreeWidgetItem* item, const QString& path);
 
@@ -58,10 +59,15 @@ private slots:
 
     void onCbZippedToggled(bool checked);
 
+    void onCustomContextMenuRequestedPaths(const QPoint &pos);
+
+    void onPbAddFromFileSystemClicked();
+
 private:
     Ui::MainWindow *ui = nullptr;
 
     QStandardItemModel *m_model = nullptr;
+    QFileSystemModel *m_fileSystemModel = nullptr;
 };
 
 

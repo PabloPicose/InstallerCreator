@@ -227,7 +227,7 @@ QList<QFileInfo> MainWindow::getDependencies(const QString &binaryPath) {
 
 void MainWindow::onTbAddBinaryClicked() {
     const QString binaryPath = ui->le_binaryPath->text();
-    addBinary(binaryPath, true, nullptr);
+    addBinary(binaryPath, "bin", nullptr);
 }
 
 void MainWindow::onItemChanged(QStandardItem *item) {
@@ -246,7 +246,7 @@ void MainWindow::onItemChanged(QStandardItem *item) {
             qDebug() << "Dependencies of" << path << ":" << dependencies.count();
             // now each dependency is inserted as a child of the binary
             for (const auto &dependency: dependencies) {
-                addBinary(dependency.filePath(), false, m_model->itemFromIndex(nameIndex));
+                addBinary(dependency.filePath(), "lib", m_model->itemFromIndex(nameIndex));
             }
         } else {
             // If the item has been unchecked we should remove all the children
@@ -256,7 +256,7 @@ void MainWindow::onItemChanged(QStandardItem *item) {
     }
 }
 
-void MainWindow::addBinary(const QString &binaryPath, bool onBinDir, QStandardItem *parentItem) {
+void MainWindow::addBinary(const QString &binaryPath, const QString &destDir, QStandardItem *parentItem) {
     QFileInfo binaryFileInfo(binaryPath);
     if (!binaryFileInfo.exists()) {
         return;
@@ -278,8 +278,7 @@ void MainWindow::addBinary(const QString &binaryPath, bool onBinDir, QStandardIt
     checkBox->setCheckable(true);
     checkBox->setCheckState(Qt::Unchecked);
     items.append(checkBox);
-    QString path = onBinDir ? "bin" : "lib";
-    items.append(new QStandardItem(path));
+    items.append(new QStandardItem(destDir));
 
     parentItem->appendRow(items);
 }
@@ -310,7 +309,7 @@ void MainWindow::onTbFindBinaryClicked() {
                                                       "/home"
     );
     for (const auto &file: files) {
-        addBinary(file, true, nullptr);
+        addBinary(file, "bin", nullptr);
     }
 }
 
@@ -433,12 +432,12 @@ void MainWindow::onPbAddFromFileSystemClicked() {
             QDir dir(path);
             const auto files = dir.entryInfoList(QDir::Files);
             for (const auto &file: files) {
-                addBinary(file.filePath(), true, nullptr);
+                addBinary(file.filePath(), "bin", nullptr);
             }
         } else {
             // if the selected item is a file, we will add only this file
             const QString path = m_fileSystemModel->filePath(idx);
-            addBinary(path, true, nullptr);
+            addBinary(path, "bin", nullptr);
         }
     }
 }
@@ -465,19 +464,13 @@ void MainWindow::onPbAddFromFilesystemCustomDestClicked() {
                 QDir dir(path);
                 const auto files = dir.entryInfoList(QDir::Files);
                 for (const auto &file: files) {
-                    addBinary(file.filePath(), true, nullptr);
+                    addBinary(file.filePath(), text, nullptr);
                 }
             } else {
                 // if the selected item is a file, we will add only this file
                 const QString path = m_fileSystemModel->filePath(idx);
-                addBinary(path, true, nullptr);
+                addBinary(path, text, nullptr);
             }
-        }
-        // now we will change the destination directory of all the selected items
-        const QModelIndexList selectedItems = ui->tv_paths->selectionModel()->selectedIndexes();
-        for (const QModelIndex &idx: selectedItems) {
-            const auto destIdx = idx.siblingAtColumn(ModelColumnDestination);
-            m_model->setData(destIdx, text);
         }
     }
 }

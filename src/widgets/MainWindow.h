@@ -37,7 +37,7 @@ public:
 private:
     void createConnectionsDefault();
 
-    void addBinary(const QString &binaryPath, bool onBinDir, QStandardItem *parentItem);
+    void addBinary(const QString &binaryPath, const QString& destDir, QStandardItem *parentItem);
 
     QSet<QStandardItem *> getAllChild(QStandardItem *parentItem) const;
 

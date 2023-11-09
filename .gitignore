@@ -31,4 +31,7 @@
 *.out
 *.app
 
-.cmake*/*
+/.cmake*
+/.venv*
+/.conan*
+/.build*

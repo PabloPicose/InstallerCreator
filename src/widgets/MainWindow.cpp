@@ -24,11 +24,12 @@ MainWindow::MainWindow(QWidget *parent) :
 
     // Create the model
     m_fileSystemModel = new QFileSystemModel(this);
-    m_fileSystemModel->setRootPath(QDir::homePath());
+    m_fileSystemModel->setRootPath(QDir::rootPath());
     auto filters = m_fileSystemModel->filter();
-    filters |= QDir::Hidden;
+    filters |= QDir::Hidden | QDir::NoDotAndDotDot | QDir::CaseSensitive;
 
     m_fileSystemModel->setFilter(filters);
+    // Enable the sort on the model
 
     // Set the model to the tree view
     ui->tv_fileExplorer->setModel(m_fileSystemModel);
@@ -36,6 +37,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->tv_fileExplorer->hideColumn(3);
     // hide the "size" column
     ui->tv_fileExplorer->hideColumn(1);
+    // sort the items by name
 
 
     m_model = new QStandardItemModel(this);

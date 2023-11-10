@@ -419,7 +419,7 @@ void MainWindow::onCustomContextMenuRequestedPaths(const QPoint &pos) {
 
 void MainWindow::onPbAddFromFileSystemClicked() {
     // check if the tree view that uses the file system model has any selected item
-    const QModelIndexList selectedIndexes = ui->tv_fileExplorer->selectionModel()->selectedIndexes();
+    const QModelIndexList selectedIndexes = ui->tv_fileExplorer->selectionModel()->selectedRows();
     if (selectedIndexes.isEmpty()) {
         return;
     }

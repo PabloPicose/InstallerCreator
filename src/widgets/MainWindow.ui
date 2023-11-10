@@ -71,7 +71,7 @@
              <item>
               <widget class="QLineEdit" name="le_binaryPath">
                <property name="text">
-                <string>/mnt/masivoFedora/vmShare/ARCOS300/Arcos300m/cmake_debug_linuxmint/RCGateway/App/RCGatewayApp</string>
+                <string>/mnt/masivoFedora/vmShare/ARCOS300/Arcos300m/cmake-build-debug/RMCSClient/RMCSClient</string>
                </property>
               </widget>
              </item>

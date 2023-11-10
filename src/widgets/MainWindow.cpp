@@ -20,6 +20,8 @@ MainWindow::MainWindow(QWidget *parent) :
         QMainWindow(parent), ui(new Ui::MainWindow) {
     ui->setupUi(this);
 
+    changeThemeFlatGray();
+
     ui->tv_paths->setContextMenuPolicy(Qt::CustomContextMenu);
 
     // Create the model
@@ -96,7 +98,6 @@ void MainWindow::onPreGenerateButtonClicked() {
     // For the example case, we will only have two root items: bin and lib. bin will have two childs: platforms and common
     // and platforms will have a child: plugins
 
-    qDebug() << "Destinations: " << destinations;
     for (const auto &dest: destinations) {
         // split into parts
         QStringList parts = dest.split('/');
@@ -305,11 +306,16 @@ void MainWindow::onTbOutputPathFindClicked() {
 }
 
 void MainWindow::onTbFindBinaryClicked() {
-    // allow multi selection
-    QStringList files = QFileDialog::getOpenFileNames(this,
-                                                      tr("Select Binaries"),
-                                                      "/home"
-    );
+    QFileDialog dialog(this);
+    dialog.setFileMode(QFileDialog::ExistingFiles);
+    // allow hidden files
+    dialog.setFilter(dialog.filter() | QDir::Hidden);
+
+    QStringList files;
+    if (dialog.exec()) {
+        files = dialog.selectedFiles();
+    }
+
     for (const auto &file: files) {
         addBinary(file, "bin", nullptr);
     }
@@ -352,11 +358,28 @@ void MainWindow::installRecursive(QTreeWidgetItem *item, const QString &path) {
         }
         for (int i = 0; i < item->childCount(); ++i) {
             auto *child = item->child(i);
-            installRecursive(child, path + "/" + item->text(0));
+            if (!item->text(0).isEmpty()) {
+                installRecursive(child, path + "/" + item->text(0));
+            }
+            else {
+                installRecursive(child, path);
+            }
         }
     } else {
         // install this item in the path
-        const bool ok = QFile::copy(item->text(1), path + "/" + item->text(0));
+        QFile file(item->text(1));
+        // Check first if the file exists, if not we will skip it
+        if (!file.exists()) {
+            qWarning() << "The file " + item->text(1) + " does not exist";
+            return;
+        }
+        // Then check if the destination path exists, if exist we will skip it
+        QFile destFile(path + "/" + item->text(0));
+        if (destFile.exists()) {
+            return;
+        }
+        const bool ok = file.copy(destFile.fileName());
+        //const bool ok = QFile::copy(item->text(1), path + "/" + item->text(0));
         if (!ok) {
             qWarning() << "Cannot copy the file " + item->text(1) + " to " + path + "/" + item->text(0);
         }
@@ -475,4 +498,38 @@ void MainWindow::onPbAddFromFilesystemCustomDestClicked() {
             }
         }
     }
+}
+
+void MainWindow::changeThemeFlatGray() {
+    //const QColor gunMetal = QColor(42, 52, 54);
+    //const QColor dimGray = QColor(99, 110, 114);
+    //const QColor x11Gray = QColor(178, 190, 195);
+    const QColor platinum = QColor(229, 233, 237);
+
+    const QColor slateGray = QColor(112, 128, 144);
+    //const QColor lightGray = QColor(211, 211, 211);
+
+    QColor highlightColor = slateGray;
+    QColor highlightTextColor = platinum;
+
+    auto dark_palette = QPalette();
+    dark_palette.setColor(QPalette::Window, QColor(53, 53, 53));
+    dark_palette.setColor(QPalette::WindowText, Qt::white);
+    dark_palette.setColor(QPalette::Base, QColor(35, 35, 35));
+    dark_palette.setColor(QPalette::AlternateBase, QColor(53, 53, 53));
+    dark_palette.setColor(QPalette::ToolTipBase, QColor(25, 25, 25));
+    dark_palette.setColor(QPalette::ToolTipText, Qt::white);
+    dark_palette.setColor(QPalette::Text, Qt::white);
+    dark_palette.setColor(QPalette::Button, QColor(53, 53, 53));
+    dark_palette.setColor(QPalette::ButtonText, Qt::white);
+    dark_palette.setColor(QPalette::BrightText, Qt::red);
+    dark_palette.setColor(QPalette::Link, QColor(42, 130, 218));
+    dark_palette.setColor(QPalette::Highlight, highlightColor);
+    dark_palette.setColor(QPalette::HighlightedText, highlightTextColor);
+    dark_palette.setColor(QPalette::Active, QPalette::Button, QColor(53, 53, 53));
+    dark_palette.setColor(QPalette::Disabled, QPalette::ButtonText, Qt::darkGray);
+    dark_palette.setColor(QPalette::Disabled, QPalette::WindowText, Qt::darkGray);
+    dark_palette.setColor(QPalette::Disabled, QPalette::Text, Qt::darkGray);
+    dark_palette.setColor(QPalette::Disabled, QPalette::Light, QColor(53, 53, 53));
+    QApplication::setPalette(dark_palette);
 }

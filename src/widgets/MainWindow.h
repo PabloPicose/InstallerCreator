@@ -43,6 +43,8 @@ private:
 
     void installRecursive(QTreeWidgetItem* item, const QString& path);
 
+    void changeThemeFlatGray();
+
 private slots:
 
     void onTbAddBinaryClicked();

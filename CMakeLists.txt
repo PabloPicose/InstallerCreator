@@ -6,6 +6,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(Qt6 COMPONENTS
         Core
@@ -21,6 +22,10 @@ add_executable(InstallerCreator
         src/widgets/RenamePathDialog.cpp
         src/widgets/RenamePathDialog.h
         src/widgets/RenamePathDialog.ui
+        src/core/TraceSOProcess.cpp
+        src/core/TraceSOProcess.h
+        src/core/BinaryData.cpp
+        src/core/BinaryData.h
 )
 
 target_link_libraries(InstallerCreator
@@ -28,4 +33,8 @@ target_link_libraries(InstallerCreator
         Qt::Gui
         Qt::Widgets
 )
+
+target_include_directories(InstallerCreator
+        PRIVATE
+        src)
 

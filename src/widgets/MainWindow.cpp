@@ -7,6 +7,7 @@
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
 #include "RenamePathDialog.h"
+#include "core/BinaryData.h"
 
 #include <QProcess>
 #include <QFileDialog>
@@ -193,6 +194,12 @@ void MainWindow::createConnectionsDefault() {
 
     connect(ui->pb_addFromFileSystemCustomDest, &QPushButton::clicked,
             this, &MainWindow::onPbAddFromFilesystemCustomDestClicked);
+
+    connect(ui->actionSave_as, &QAction::triggered,
+            this, &MainWindow::onActionSaveAsClicked);
+
+    connect(ui->actionLoad, &QAction::triggered,
+            this, &MainWindow::onActionLoadClicked);
 }
 
 QList<QFileInfo> MainWindow::getDependencies(const QString &binaryPath) {
@@ -230,7 +237,7 @@ QList<QFileInfo> MainWindow::getDependencies(const QString &binaryPath) {
 
 void MainWindow::onTbAddBinaryClicked() {
     const QString binaryPath = ui->le_binaryPath->text();
-    addBinary(binaryPath, "bin", nullptr);
+    addBinary(binaryPath, "bin", nullptr, false);
 }
 
 void MainWindow::onItemChanged(QStandardItem *item) {
@@ -249,7 +256,7 @@ void MainWindow::onItemChanged(QStandardItem *item) {
             qDebug() << "Dependencies of" << path << ":" << dependencies.count();
             // now each dependency is inserted as a child of the binary
             for (const auto &dependency: dependencies) {
-                addBinary(dependency.filePath(), "lib", m_model->itemFromIndex(nameIndex));
+                addBinary(dependency.filePath(), "lib", m_model->itemFromIndex(nameIndex), false);
             }
         } else {
             // If the item has been unchecked we should remove all the children
@@ -259,7 +266,8 @@ void MainWindow::onItemChanged(QStandardItem *item) {
     }
 }
 
-void MainWindow::addBinary(const QString &binaryPath, const QString &destDir, QStandardItem *parentItem) {
+void
+MainWindow::addBinary(const QString &binaryPath, const QString &destDir, QStandardItem *parentItem, bool findDeps) {
     QFileInfo binaryFileInfo(binaryPath);
     if (!binaryFileInfo.exists()) {
         return;
@@ -279,7 +287,7 @@ void MainWindow::addBinary(const QString &binaryPath, const QString &destDir, QS
     // Create a checkbox to insert in the column 3
     auto *checkBox = new QStandardItem();
     checkBox->setCheckable(true);
-    checkBox->setCheckState(Qt::Unchecked);
+    checkBox->setCheckState(findDeps ? Qt::Checked : Qt::Unchecked);
     items.append(checkBox);
     items.append(new QStandardItem(destDir));
 
@@ -317,7 +325,7 @@ void MainWindow::onTbFindBinaryClicked() {
     }
 
     for (const auto &file: files) {
-        addBinary(file, "bin", nullptr);
+        addBinary(file, "bin", nullptr, false);
     }
 }
 
@@ -360,8 +368,7 @@ void MainWindow::installRecursive(QTreeWidgetItem *item, const QString &path) {
             auto *child = item->child(i);
             if (!item->text(0).isEmpty()) {
                 installRecursive(child, path + "/" + item->text(0));
-            }
-            else {
+            } else {
                 installRecursive(child, path);
             }
         }
@@ -457,12 +464,12 @@ void MainWindow::onPbAddFromFileSystemClicked() {
             QDir dir(path);
             const auto files = dir.entryInfoList(QDir::Files);
             for (const auto &file: files) {
-                addBinary(file.filePath(), "bin", nullptr);
+                addBinary(file.filePath(), "bin", nullptr, false);
             }
         } else {
             // if the selected item is a file, we will add only this file
             const QString path = m_fileSystemModel->filePath(idx);
-            addBinary(path, "bin", nullptr);
+            addBinary(path, "bin", nullptr, false);
         }
     }
 }
@@ -489,12 +496,12 @@ void MainWindow::onPbAddFromFilesystemCustomDestClicked() {
                 QDir dir(path);
                 const auto files = dir.entryInfoList(QDir::Files);
                 for (const auto &file: files) {
-                    addBinary(file.filePath(), text, nullptr);
+                    addBinary(file.filePath(), text, nullptr, false);
                 }
             } else {
                 // if the selected item is a file, we will add only this file
                 const QString path = m_fileSystemModel->filePath(idx);
-                addBinary(path, text, nullptr);
+                addBinary(path, text, nullptr, false);
             }
         }
     }
@@ -532,4 +539,133 @@ void MainWindow::changeThemeFlatGray() {
     dark_palette.setColor(QPalette::Disabled, QPalette::Text, Qt::darkGray);
     dark_palette.setColor(QPalette::Disabled, QPalette::Light, QColor(53, 53, 53));
     QApplication::setPalette(dark_palette);
+}
+
+void MainWindow::onActionSaveAsClicked() {
+    // Open a dialog to select the file in a .bin format under home directory/.local/share/InstallerCreator
+    // If the path does not exist, create it
+    QDir dir(QDir::homePath() + "/.local/share/InstallerCreator");
+    if (!dir.exists()) {
+        if (!dir.mkpath(dir.path())) {
+            QMessageBox::critical(this, "Error", "Cannot create the directory " + dir.path());
+            return;
+        }
+    }
+
+    QString fileName = QFileDialog::getSaveFileName(this, "Save as", dir.path(), "Binary file (*.bin)");
+    if (fileName.isEmpty()) {
+        return;
+    }
+    // append the extension if it does not exist
+    if (!fileName.endsWith(".bin")) {
+        fileName.append(".bin");
+    }
+
+
+    // Convert the model data into a binary data
+    QVector<BinaryData> binaryDataTopLevel;
+    for (int i = 0; i < m_model->rowCount(); ++i) {
+        auto *item = m_model->item(i);
+        BinaryData binaryData;
+        saveRecursiveBinaryData(&binaryData, item);
+        binaryDataTopLevel.append(binaryData);
+    }
+
+    QFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly)) {
+        QMessageBox::critical(this, "Error", "Cannot open the file " + fileName);
+        return;
+    }
+    QDataStream out(&file);
+    out << binaryDataTopLevel;
+}
+
+void MainWindow::onActionLoadClicked() {
+    // Open a dialog to select the file in a .bin format under home directory/.local/share/InstallerCreator
+    // If the path does not exist, create it
+    QDir dir(QDir::homePath() + "/.local/share/InstallerCreator");
+    if (!dir.exists()) {
+        if (!dir.mkpath(dir.path())) {
+            QMessageBox::critical(this, "Error", "Cannot create the directory " + dir.path());
+            return;
+        }
+    }
+
+    const QString fileName = QFileDialog::getOpenFileName(this, "Load", dir.path(), "Binary file (*.bin)");
+    if (fileName.isEmpty()) {
+        return;
+    }
+
+    QFile file(fileName);
+    if (!file.open(QIODevice::ReadOnly)) {
+        QMessageBox::critical(this, "Error", "Cannot open the file " + fileName);
+        return;
+    }
+    QDataStream in(&file);
+    QVector<BinaryData> binaryDataTopLevel;
+    in >> binaryDataTopLevel;
+
+    // clear the model
+    m_model->clear();
+    m_model->setColumnCount(4);
+    m_model->setHeaderData(ModelColumnName, Qt::Horizontal, "Name");
+    m_model->setHeaderData(ModelColumnPath, Qt::Horizontal, "Path");
+    m_model->setHeaderData(ModelColumnFind, Qt::Horizontal, "Install deps");
+    m_model->setHeaderData(ModelColumnDestination, Qt::Horizontal, "Destination");
+
+    // now we have to loop over the binaryDataTopLevel and add the items to the model using the loadRecursiveBinaryData
+    for (const auto &binaryData: binaryDataTopLevel) {
+        QStandardItem *parentItem = m_model->invisibleRootItem();
+        loadRecursiveBinaryData(binaryData, parentItem);
+    }
+}
+
+void MainWindow::saveRecursiveBinaryData(BinaryData *binaryData, QStandardItem *parentItem) {
+    // get the data from the parent item
+    const QModelIndex pathIndex = parentItem->index().siblingAtColumn(ModelColumnPath);
+    const QModelIndex findIndex = parentItem->index().siblingAtColumn(ModelColumnFind);
+    const QModelIndex destinationIndex = parentItem->index().siblingAtColumn(ModelColumnDestination);
+
+    binaryData->setFileName(pathIndex.data().toString());
+    // take the check state of the find index
+    if (findIndex.isValid())
+    {
+        const auto item = m_model->itemFromIndex(findIndex);
+        const bool findDeps = item->checkState() == Qt::Checked;
+        binaryData->setFindDeps(findDeps);
+    }
+    binaryData->setDestination(destinationIndex.data().toString());
+
+    // now we have to loop over the childs
+    for (int i = 0; i < parentItem->rowCount(); ++i) {
+        auto *child = parentItem->child(i);
+        BinaryData childBinaryData;
+        saveRecursiveBinaryData(&childBinaryData, child);
+        binaryData->appendDependency(childBinaryData);
+    }
+}
+
+void MainWindow::loadRecursiveBinaryData(const BinaryData &binaryData, QStandardItem *parentItem) {
+    // create the items
+    QList<QStandardItem *> items;
+    QFileInfo binaryFileInfo(binaryData.fileName());
+    auto *nameItem = new QStandardItem(binaryFileInfo.fileName());
+    nameItem->setEditable(false);
+    items.append(nameItem);
+    auto *pathItem = new QStandardItem(binaryFileInfo.filePath());
+    pathItem->setEditable(false);
+    items.append(pathItem);
+    // Create a checkbox to insert in the column 3
+    auto *checkBox = new QStandardItem();
+    checkBox->setCheckable(true);
+    checkBox->setCheckState(binaryData.findDeps() ? Qt::Checked : Qt::Unchecked);
+    items.append(checkBox);
+    items.append(new QStandardItem(binaryData.destination()));
+
+    parentItem->appendRow(items);
+
+    // now we have to loop over the dependencies
+    for (const auto &dependency: binaryData.dependencies()) {
+        loadRecursiveBinaryData(dependency, items[0]);
+    }
 }

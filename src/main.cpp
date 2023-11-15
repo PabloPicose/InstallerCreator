@@ -1,8 +1,9 @@
 #include <QApplication>
 #include <QSettings>
-#include <QFileInfo>
 
 #include "widgets/MainWindow.h"
+#include "core/TraceSOProcess.h"
+
 
 int main(int argc, char *argv[]) {
     QApplication a(argc, argv);
@@ -15,6 +16,11 @@ int main(int argc, char *argv[]) {
     // print the settings file path
     qDebug() << "Settings file path: " << QSettings().fileName();
 
+    /*TraceSOProcess traceSOProcess;
+    traceSOProcess.setProgramToAnalize(
+            "/mnt/masivoFedora/vmShare/ARCOS300/Arcos300m/cmake-build-debug/RMCSClient/RMCSClient");
+    traceSOProcess.analize();
+    */
 
     MainWindow w;
     w.show();

@@ -8,6 +8,7 @@
 #include <QMainWindow>
 #include <QFileInfo>
 #include <QStandardItemModel>
+#include "core/BinaryData.h"
 
 
 QT_BEGIN_NAMESPACE
@@ -37,13 +38,18 @@ public:
 private:
     void createConnectionsDefault();
 
-    void addBinary(const QString &binaryPath, const QString& destDir, QStandardItem *parentItem);
+    void addBinary(const QString &binaryPath, const QString& destDir, QStandardItem *parentItem, bool findDeps);
 
     QSet<QStandardItem *> getAllChild(QStandardItem *parentItem) const;
 
     void installRecursive(QTreeWidgetItem* item, const QString& path);
 
     void changeThemeFlatGray();
+
+    void saveRecursiveBinaryData(BinaryData *binaryData, QStandardItem *parentItem);
+
+    // function that serves to load in the model the data that is in the binaryData recursively
+    void loadRecursiveBinaryData(const BinaryData &binaryData, QStandardItem *parentItem);
 
 private slots:
 
@@ -66,6 +72,10 @@ private slots:
     void onPbAddFromFileSystemClicked();
 
     void onPbAddFromFilesystemCustomDestClicked();
+
+    void onActionSaveAsClicked();
+
+    void onActionLoadClicked();
 
 private:
     Ui::MainWindow *ui = nullptr;

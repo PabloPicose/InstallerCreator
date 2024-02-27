@@ -1,0 +1,8 @@
+6
+0
+{"Hash":"","Name":"","Path":"/mnt/masivoFedora/dev/InstallerCreator/src/core/BinaryData.cpp"}
+{"Hash":"","Name":"","Path":"/mnt/masivoFedora/dev/InstallerCreator/.cmake-build-debug/InstallerCreator_autogen/mocs_compilation.cpp"}
+{"Hash":"","Name":"","Path":"/mnt/masivoFedora/dev/InstallerCreator/src/widgets/MainWindow.cpp"}
+{"Hash":"","Name":"","Path":"/mnt/masivoFedora/dev/InstallerCreator/src/widgets/RenamePathDialog.cpp"}
+{"Hash":"","Name":"","Path":"/mnt/masivoFedora/dev/InstallerCreator/src/main.cpp"}
+{"Hash":"","Name":"","Path":"/mnt/masivoFedora/dev/InstallerCreator/src/core/TraceSOProcess.cpp"}

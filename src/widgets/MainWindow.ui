@@ -71,7 +71,7 @@
              <item>
               <widget class="QLineEdit" name="le_binaryPath">
                <property name="text">
-                <string>/mnt/masivoFedora/vmShare/ARCOS300/Arcos300m/cmake-build-debug/RMCSClient/RMCSClient</string>
+                <string/>
                </property>
               </widget>
              </item>
@@ -250,7 +250,7 @@
      <x>0</x>
      <y>0</y>
      <width>1202</width>
-     <height>20</height>
+     <height>19</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

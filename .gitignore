@@ -1,3 +1,5 @@
+cmake-*/
+CMakeUserPresets.json
 # Prerequisites
 *.d
 

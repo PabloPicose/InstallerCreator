@@ -1,0 +1,8 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/icons/small">
+        <file>cross.png</file>
+        <file>check.png</file>
+        <file>magnifying-glass.png</file>
+    </qresource>
+</RCC>

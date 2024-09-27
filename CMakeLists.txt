@@ -14,14 +14,27 @@ find_package(Qt6 COMPONENTS
         Widgets
         REQUIRED)
 
+set(RESOURCE_FILES 
+        resources/icons/small/small_icons.qrc
+        )
+
 add_executable(InstallerCreator
+        ${RESOURCE_FILES}
         src/main.cpp
+
         src/widgets/MainWindow.cpp
         src/widgets/MainWindow.h
         src/widgets/MainWindow.ui
         src/widgets/RenamePathDialog.cpp
         src/widgets/RenamePathDialog.h
         src/widgets/RenamePathDialog.ui
+        src/widgets/PathCheckFinderWgt.cpp
+        src/widgets/PathCheckFinderWgt.h
+        src/widgets/PathCheckFinderWgt.ui
+        src/widgets/CheckingToolDiag.cpp
+        src/widgets/CheckingToolDiag.h
+        src/widgets/CheckingToolDiag.ui
+
         src/core/TraceSOProcess.cpp
         src/core/TraceSOProcess.h
         src/core/BinaryData.cpp

@@ -8,6 +8,7 @@
 #include "ui_MainWindow.h"
 #include "RenamePathDialog.h"
 #include "core/BinaryData.h"
+#include "CheckingToolDiag.h"
 
 #include <QProcess>
 #include <QFileDialog>
@@ -198,6 +199,9 @@ void MainWindow::createConnectionsDefault() {
 
     connect(ui->actionSave_as, &QAction::triggered,
             this, &MainWindow::onActionSaveAsClicked);
+
+    connect(ui->actionChecking_tool, &QAction::triggered,
+            this, &MainWindow::onActionCheckingToolClicked);
 
     connect(ui->actionLoad, &QAction::triggered,
             this, &MainWindow::onActionLoadClicked);
@@ -634,6 +638,15 @@ void MainWindow::onActionLoadClicked() {
     for (const auto& binaryData : binaryDataTopLevel) {
         QStandardItem* parentItem = m_model->invisibleRootItem();
         loadRecursiveBinaryData(binaryData, parentItem);
+    }
+}
+
+void MainWindow::onActionCheckingToolClicked() {
+    // Launch the CheckingToolDiag class
+    CheckingToolDiag diag(this);
+    if (diag.exec() == QDialog::Accepted) {
+        // get the data from the dialog
+        // TODO save the data
     }
 }
 

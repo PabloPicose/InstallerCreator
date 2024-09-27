@@ -77,6 +77,8 @@ private slots:
 
     void onActionLoadClicked();
 
+    void onActionCheckingToolClicked();
+
 private:
     Ui::MainWindow *ui = nullptr;
 

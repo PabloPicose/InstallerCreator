@@ -1,0 +1,7 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/icons/medium">
+        <file>cross.png</file>
+        <file>check.png</file>
+    </qresource>
+</RCC>
